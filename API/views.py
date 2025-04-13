@@ -13,6 +13,9 @@ from .serializers import FoodSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework.decorators import api_view
 from .serializers import UserSerializer
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 @api_view(['POST'])
 def register_user(request):
@@ -53,10 +56,23 @@ class RegisterView(APIView):
 
 class LoginView(TokenObtainPairView):
     def post(self, request, *args, **kwargs):
-        response = super().post(request, *args, **kwargs)
-        user = User.objects.get(username=request.data['username'])
-        response.data['username'] = user.username
-        return response
+        email = request.data.get('email')
+        password = request.data.get('password')
+        
+        try:
+            user = User.objects.get(email=email)
+            if user.check_password(password):
+                request.data['username'] = user.username  # Add username for JWT token creation
+                response = super().post(request, *args, **kwargs)
+                response.data['email'] = user.email
+                return response
+        except User.DoesNotExist:
+            pass
+            
+        return Response(
+            {"detail": "Invalid email or password."}, 
+            status=401
+        )
 
 
 class FoodViewSet(viewsets.ReadOnlyModelViewSet):

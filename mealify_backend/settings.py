@@ -40,8 +40,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'corsheaders',
-    'api.apps.ApiConfig',  # Update this line
-    'rest_framework_simplejwt.token_blacklist',
+    'api.apps.ApiConfig',  # Make sure this matches your app config
 ]
 
 MIDDLEWARE = [
@@ -70,8 +69,10 @@ SIMPLE_JWT = {
 # Add CORS settings
 CORS_ALLOW_ALL_ORIGINS = True  # For development only
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",  # Your React frontend URL
+    "http://localhost:8080",  # Updated port for React
 ]
+
+CORS_ALLOW_CREDENTIALS = True
 
 ROOT_URLCONF = 'mealify_backend.urls'
 
