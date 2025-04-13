@@ -6,6 +6,24 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
 from rest_framework import status
+from rest_framework import viewsets
+from rest_framework.permissions import IsAuthenticated
+from .models import Food
+from .serializers import FoodSerializer
+from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework.decorators import api_view
+from .serializers import UserSerializer
+
+@api_view(['POST'])
+def register_user(request):
+    serializer = UserSerializer(data=request.data)
+    if serializer.is_valid():
+        user = serializer.save()
+        return Response({
+            "message": "Registration successful",
+            "username": user.username
+        }, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class RegisterView(APIView):
     permission_classes = [AllowAny]
@@ -25,25 +43,15 @@ class RegisterView(APIView):
         return Response({"message": "User registered successfully"}, status=201)
 
 
-class LoginView(APIView):
-    permission_classes = [AllowAny]
+class LoginView(TokenObtainPairView):
+    def post(self, request, *args, **kwargs):
+        response = super().post(request, *args, **kwargs)
+        user = User.objects.get(username=request.data['username'])
+        response.data['username'] = user.username
+        return response
 
-    def post(self, request):
-        email = request.data.get("email")
-        password = request.data.get("password")
 
-        try:
-            user = User.objects.get(email=email)
-        except User.DoesNotExist:
-            return Response({"error": "Invalid email"}, status=400)
-
-        user = authenticate(username=user.username, password=password)
-
-        if user is not None:
-            refresh = RefreshToken.for_user(user)
-            return Response({
-                "access": str(refresh.access_token),
-                "refresh": str(refresh),
-                "username": user.username
-            })
-        return Response({"error": "Invalid credentials"}, status=401)
+class FoodViewSet(viewsets.ReadOnlyModelViewSet):
+    permission_classes = [IsAuthenticated]
+    queryset = Food.objects.all()
+    serializer_class = FoodSerializer
