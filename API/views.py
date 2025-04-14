@@ -59,6 +59,12 @@ class LoginView(TokenObtainPairView):
         email = request.data.get('email')
         password = request.data.get('password')
 
+        if not email or not password:
+            return Response(
+                {'error': 'Please provide both email and password'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         try:
             user = User.objects.get(email=email)
             if user.check_password(password):
@@ -67,13 +73,16 @@ class LoginView(TokenObtainPairView):
                 response.data['email'] = user.email
                 response.data['username'] = user.username
                 return response
+            else:
+                return Response(
+                    {'error': 'Invalid credentials'},
+                    status=status.HTTP_401_UNAUTHORIZED
+                )
         except User.DoesNotExist:
-            pass
-
-        return Response(
-            {"detail": "Invalid email or password."},
-            status=status.HTTP_401_UNAUTHORIZED
-        )
+            return Response(
+                {'error': 'User not found'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
 
 
 class FoodViewSet(viewsets.ReadOnlyModelViewSet):

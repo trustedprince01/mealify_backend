@@ -7,7 +7,7 @@ router.register(r'foods', FoodViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),
-    path('register/', register_user, name='register'),
-    path('login/', LoginView.as_view(), name='login'),
+    path('auth/register/', register_user, name='register'),
+    path('auth/login/', LoginView.as_view(), name='login'),
 ]
 
