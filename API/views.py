@@ -58,20 +58,22 @@ class LoginView(TokenObtainPairView):
     def post(self, request, *args, **kwargs):
         email = request.data.get('email')
         password = request.data.get('password')
-        
+
         try:
+            # Find the user by email
             user = User.objects.get(email=email)
-            if user.check_password(password):
+            if user.check_password(password):  # Verify the password
                 request.data['username'] = user.username  # Add username for JWT token creation
                 response = super().post(request, *args, **kwargs)
                 response.data['email'] = user.email
+                response.data['username'] = user.username
                 return response
         except User.DoesNotExist:
             pass
-            
+
         return Response(
-            {"detail": "Invalid email or password."}, 
-            status=401
+            {"detail": "Invalid email or password."},
+            status=status.HTTP_401_UNAUTHORIZED
         )
 
 
