@@ -80,3 +80,28 @@ class FoodViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated]
     queryset = Food.objects.all()
     serializer_class = FoodSerializer
+
+@api_view(['POST'])
+def login(request):
+    email = request.data.get('email')
+    password = request.data.get('password')
+    
+    if not email or not password:
+        return Response(
+            {'error': 'Please provide both email and password'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    user = authenticate(username=email, password=password)
+    
+    if user:
+        return Response({
+            'token': 'your-token-here',
+            'email': user.email,
+            'username': user.username
+        })
+    else:
+        return Response(
+            {'error': 'Invalid credentials'},
+            status=status.HTTP_401_UNAUTHORIZED
+        )
