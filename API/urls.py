@@ -8,6 +8,6 @@ router.register(r'foods', FoodViewSet)
 urlpatterns = [
     path('', include(router.urls)),
     path('register/', register_user, name='register'),
-    path('login/', LoginView.as_view(), name='login'),  # Use the custom LoginView
+    path('login/', LoginView.as_view(), name='login'),
 ]
 

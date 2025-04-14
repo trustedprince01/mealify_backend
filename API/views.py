@@ -20,13 +20,13 @@ User = get_user_model()
 @api_view(['POST'])
 def register_user(request):
     try:
+        email = request.data.get('email')
+        if User.objects.filter(email=email).exists():
+            return Response({"error": "Email already exists"}, status=status.HTTP_400_BAD_REQUEST)
+
         serializer = UserSerializer(data=request.data)
         if serializer.is_valid():
-            user = User.objects.create_user(
-                username=request.data['username'],
-                email=request.data['email'],
-                password=request.data['password']
-            )
+            user = serializer.save()
             return Response({
                 "message": "Registration successful",
                 "username": user.username,
@@ -60,10 +60,9 @@ class LoginView(TokenObtainPairView):
         password = request.data.get('password')
 
         try:
-            # Find the user by email
             user = User.objects.get(email=email)
-            if user.check_password(password):  # Verify the password
-                request.data['username'] = user.username  # Add username for JWT token creation
+            if user.check_password(password):
+                request.data['username'] = user.username
                 response = super().post(request, *args, **kwargs)
                 response.data['email'] = user.email
                 response.data['username'] = user.username
