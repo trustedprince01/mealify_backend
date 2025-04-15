@@ -8,6 +8,10 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .models import Food
 from .serializers import FoodSerializer
+from .models import CartItem
+from .serializers import CartItemSerializer
+from rest_framework.permissions import IsAuthenticated
+
 
 
 @api_view(['GET'])
@@ -58,6 +62,32 @@ class LoginView(APIView):
             "username": user.username,
             "email": user.email
         }, status=200)
+    
+class CartView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        cart_items = CartItem.objects.filter(user=request.user)
+        serializer = CartItemSerializer(cart_items, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        food_id = request.data.get("food_id")
+        quantity = int(request.data.get("quantity", 1))
+
+        try:
+            food = Food.objects.get(id=food_id)
+        except Food.DoesNotExist:
+            return Response({"error": "Food not found"}, status=404)
+
+        cart_item, created = CartItem.objects.get_or_create(user=request.user, food=food)
+        if not created:
+            cart_item.quantity += quantity
+        else:
+            cart_item.quantity = quantity
+        cart_item.save()
+
+        return Response({"message": "Item added to cart"}, status=201)
 
 
 
