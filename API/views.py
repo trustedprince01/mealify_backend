@@ -1,5 +1,4 @@
 from rest_framework.views import APIView
-from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.models import User
@@ -11,8 +10,9 @@ from .serializers import FoodSerializer
 from .models import CartItem
 from .serializers import CartItemSerializer
 from rest_framework.permissions import IsAuthenticated
-
-
+from .models import CartItem, Food
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework import status
 
 @api_view(['GET'])
 def get_all_foods(request):
@@ -92,3 +92,45 @@ class CartView(APIView):
 
 
 
+
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_user_cart(request):
+    cart_items = CartItem.objects.filter(user=request.user)
+    serializer = CartItemSerializer(cart_items, many=True)
+    return Response(serializer.data)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def add_to_cart(request):
+    food_id = request.data.get('food_id')
+    quantity = int(request.data.get('quantity', 1))
+
+    try:
+        food = Food.objects.get(id=food_id)
+    except Food.DoesNotExist:
+        return Response({'error': 'Food not found'}, status=404)
+
+    cart_item, created = CartItem.objects.get_or_create(
+        user=request.user,
+        food=food,
+        defaults={'quantity': quantity}
+    )
+
+    if not created:
+        cart_item.quantity += quantity
+        cart_item.save()
+
+    return Response({'message': 'Item added to cart'}, status=201)
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_cart_item(request, item_id):
+    try:
+        item = CartItem.objects.get(id=item_id, user=request.user)
+        item.delete()
+        return Response({'message': 'Item removed'}, status=200)
+    except CartItem.DoesNotExist:
+        return Response({'error': 'Item not found'}, status=404)
