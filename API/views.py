@@ -89,12 +89,6 @@ class CartView(APIView):
 
         return Response({"message": "Item added to cart"}, status=201)
 
-
-
-
-
-
-
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_user_cart(request):
