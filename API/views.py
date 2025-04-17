@@ -13,6 +13,12 @@ from rest_framework.permissions import IsAuthenticated
 from .models import CartItem, Food
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework import status
+from rest_framework.decorators import permission_classes
+from .models import Order, CartItem, OrderItem
+from .serializers import OrderSerializer
+
+
+
 
 @api_view(['GET'])
 def get_all_foods(request):
@@ -128,3 +134,65 @@ def delete_cart_item(request, item_id):
         return Response({'message': 'Item removed'}, status=200)
     except CartItem.DoesNotExist:
         return Response({'error': 'Item not found'}, status=404)
+
+
+@api_view(['PATCH', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def update_or_delete_cart_item(request, item_id):
+    try:
+        item = CartItem.objects.get(id=item_id, user=request.user)
+    except CartItem.DoesNotExist:
+        return Response({'error': 'Item not found'}, status=404)
+
+    if request.method == 'PATCH':
+        quantity = request.data.get('quantity')
+        if quantity is not None:
+            item.quantity = quantity
+            item.save()
+            return Response({'message': 'Quantity updated'}, status=200)
+        else:
+            return Response({'error': 'Quantity is required'}, status=400)
+
+    elif request.method == 'DELETE':
+        item.delete()
+        return Response({'message': 'Item removed from cart'}, status=200)
+    
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def place_order(request):
+    cart_items = CartItem.objects.filter(user=request.user)
+    
+    if not cart_items.exists():
+        return Response({'error': 'Cart is empty'}, status=400)
+
+    order_summary = []
+    total = 0
+
+    for item in cart_items:
+        item_total = item.food.price * item.quantity
+        total += item_total
+        order_summary.append({
+            'food': item.food.name,
+            'price': item.food.price,
+            'quantity': item.quantity,
+            'total': item_total
+        })
+
+    # Optionally: Save order to DB (if you have Order model)
+    
+    # Clear cart
+    cart_items.delete()
+
+    return Response({
+        'message': 'Order placed successfully',
+        'items': order_summary,
+        'total': total
+    }, status=201)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def user_orders(request):
+    orders = Order.objects.filter(user=request.user).order_by('-created_at')
+    serializer = OrderSerializer(orders, many=True)
+    return Response(serializer.data)
