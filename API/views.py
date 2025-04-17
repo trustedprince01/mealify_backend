@@ -165,29 +165,29 @@ def place_order(request):
     if not cart_items.exists():
         return Response({'error': 'Cart is empty'}, status=400)
 
-    order_summary = []
-    total = 0
-
-    for item in cart_items:
-        item_total = item.food.price * item.quantity
-        total += item_total
-        order_summary.append({
-            'food': item.food.name,
-            'price': item.food.price,
-            'quantity': item.quantity,
-            'total': item_total
-        })
-
-    # Optionally: Save order to DB (if you have Order model)
+    total = sum(item.food.price * item.quantity for item in cart_items)
     
-    # Clear cart
+    # Create order
+    order = Order.objects.create(
+        user=request.user,
+        total=total,
+        status='pending'
+    )
+    
+    # Create order items
+    for item in cart_items:
+        OrderItem.objects.create(
+            order=order,
+            food=item.food,
+            quantity=item.quantity
+        )
+    
+    # Clear cart after order is created
     cart_items.delete()
-
-    return Response({
-        'message': 'Order placed successfully',
-        'items': order_summary,
-        'total': total
-    }, status=201)
+    
+    # Serialize the order and return it
+    serializer = OrderSerializer(order)
+    return Response(serializer.data, status=201)
 
 
 @api_view(['GET'])
