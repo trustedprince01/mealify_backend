@@ -1,6 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
-from .models import Food
+# from .models import Food
 
 
 class Food(models.Model):
