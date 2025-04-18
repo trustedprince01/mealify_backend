@@ -12,10 +12,27 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from pathlib import Path
 from datetime import timedelta
+import cloudinary
+import cloudinary.uploader
+import cloudinary.api
+from dotenv import load_dotenv
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+load_dotenv()
+
+# Cloudinary Configuration
+CLOUDINARY_CLOUD_NAME = os.getenv('CLOUDINARY_CLOUD_NAME', 'decwpzzbg')
+CLOUDINARY_API_KEY = os.getenv('CLOUDINARY_API_KEY', '824589722915937')
+CLOUDINARY_API_SECRET = os.getenv('CLOUDINARY_API_SECRET', 'ZODfjPV1-1zHiZCXypBXJiCqfmY')
+
+cloudinary.config(
+    cloud_name=CLOUDINARY_CLOUD_NAME,
+    api_key=CLOUDINARY_API_KEY,
+    api_secret=CLOUDINARY_API_SECRET
+)
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
@@ -78,10 +95,26 @@ SIMPLE_JWT = {
 # Add CORS settings
 CORS_ALLOW_ALL_ORIGINS = True  # For development only
 CORS_ALLOWED_ORIGINS = [
-     "http://localhost:8080",
+    "http://localhost:8080",
+    "http://localhost:3000",
+    "http://127.0.0.1:8080",
+    "http://127.0.0.1:3000",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
+
+# Add CORS headers
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
 
 ROOT_URLCONF = 'mealify_backend.urls'
 
@@ -102,6 +135,13 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'mealify_backend.wsgi.application'
+
+
+PAYSTACK_SECRET_KEY = "sk_test_a380dda6a29099c572c9a3c5034425240036c5ee"  # Replace with your actual secret key
+PAYSTACK_PUBLIC_KEY = "pk_test_f328575f8f9f690f5ed43786a9c5c456c277719b"  # Replace with your actual public key
+PAYSTACK_BASE_URL = "https://api.paystack.co"
+
+PAYSTACK_VERIFY_URL = "https://api.paystack.co/transaction/verify/"
 
 
 # Database
@@ -156,4 +196,4 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-AUTH_USER_MODEL = 'auth.User'
+AUTH_USER_MODEL = 'api.User'
