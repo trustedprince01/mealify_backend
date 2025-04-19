@@ -25,10 +25,20 @@ class OrderItemSerializer(serializers.ModelSerializer):
 
 class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True)
+    user = serializers.SerializerMethodField()
 
     class Meta:
         model = Order
-        fields = ['id', 'items', 'total', 'status', 'created_at']
+        fields = ['id', 'user', 'items', 'total', 'status', 'created_at']
+    
+    def get_user(self, obj):
+        return {
+            'id': obj.user.id,
+            'username': obj.user.username,
+            'email': obj.user.email,
+            'first_name': obj.user.first_name,
+            'last_name': obj.user.last_name
+        }
 
 
      

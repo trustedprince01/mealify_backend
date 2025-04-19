@@ -27,6 +27,7 @@ import requests
 from django.conf import settings
 import cloudinary.uploader
 from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.permissions import BasePermission
 
 
 
@@ -44,6 +45,8 @@ def get_tokens_for_user(user):
     }
 
 class RegisterView(APIView):
+    permission_classes = []  # Allow unauthenticated access
+    
     def post(self, request):
         username = request.data.get("username")
         email = request.data.get("email")
@@ -57,6 +60,8 @@ class RegisterView(APIView):
 
 
 class LoginView(APIView):
+    permission_classes = []  # Allow unauthenticated access
+    
     def post(self, request):
         email = request.data.get("email")
         password = request.data.get("password")
@@ -66,21 +71,23 @@ class LoginView(APIView):
 
         try:
             user = User.objects.get(email=email)
+            if not user.check_password(password):
+                return Response({"error": "Invalid email or password"}, status=400)
+
+            tokens = get_tokens_for_user(user)
+            return Response({
+                "token": tokens["token"],
+                "refresh": tokens["refresh"],
+                "username": user.username,
+                "email": user.email,
+                "role": user.role,
+                "first_name": user.first_name,
+                "last_name": user.last_name
+            }, status=200)
         except User.DoesNotExist:
             return Response({"error": "Invalid email or password"}, status=400)
-
-        user = authenticate(username=user.username, password=password)
-        if not user:
-            return Response({"error": "Invalid email or password"}, status=400)
-
-        tokens = get_tokens_for_user(user)
-
-        return Response({
-            "token": tokens["token"],
-            "refresh": tokens["refresh"],
-            "username": user.username,
-            "email": user.email
-        }, status=200)
+        except Exception as e:
+            return Response({"error": str(e)}, status=500)
     
 class CartView(APIView):
     permission_classes = [IsAuthenticated]
@@ -206,9 +213,23 @@ def place_order(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def user_orders(request):
-    orders = Order.objects.filter(user=request.user).order_by('-created_at')
-    serializer = OrderSerializer(orders, many=True)
-    return Response(serializer.data)
+    try:
+        print(f"Getting orders for user: {request.user.username}")
+        print(f"User role: {request.user.role}")
+        print(f"Auth header: {request.headers.get('Authorization', 'No auth header')}")
+        
+        orders = Order.objects.filter(user=request.user).order_by('-created_at')
+        print(f"Found {orders.count()} orders for this user")
+        
+        # Debug order details
+        for order in orders:
+            print(f"Order {order.id}: status={order.status}, total={order.total}, items={order.items.count()}")
+        
+        serializer = OrderSerializer(orders, many=True)
+        return Response(serializer.data)
+    except Exception as e:
+        print(f"Error in user_orders: {str(e)}")
+        return Response({'error': str(e)}, status=500)
 
 
 
@@ -500,6 +521,7 @@ def get_user_profile(request):
             'first_name': user.first_name or '',
             'last_name': user.last_name or '',
             'date_joined': user.date_joined,
+            'profile_picture': user.profile_picture or '',
         }
         return Response(profile_data)
     except Exception as e:
@@ -597,3 +619,403 @@ def upload_profile_picture(request):
         return Response({
             'error': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class IsVendorPermission(BasePermission):
+    def has_permission(self, request, view):
+        return request.user.is_authenticated and request.user.is_vendor
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated, IsVendorPermission])
+def add_food(request):
+    """Add a new food item (vendor only)"""
+    try:
+        data = request.data
+        
+        # Upload image to Cloudinary if provided
+        image_url = None
+        if 'image' in request.FILES:
+            upload_result = cloudinary.uploader.upload(
+                request.FILES['image'],
+                folder="mealify_foods",
+                transformation=[
+                    {'width': 800, 'height': 600, 'crop': 'fill'},
+                    {'quality': 'auto'},
+                    {'fetch_format': 'auto'}
+                ]
+            )
+            image_url = upload_result['secure_url']
+        else:
+            return Response({'error': 'Image is required'}, status=400)
+
+        # Create food item
+        food = Food.objects.create(
+            vendor=request.user,
+            name=data.get('name'),
+            description=data.get('description', ''),
+            price=data.get('price'),
+            category=data.get('category'),
+            isVeg=data.get('category') == 'veg',
+            image=image_url
+        )
+
+        return Response({
+            'message': 'Food item added successfully',
+            'food': {
+                'id': food.id,
+                'name': food.name,
+                'price': food.price,
+                'image': food.image,
+                'category': food.category
+            }
+        }, status=201)
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsVendorPermission])
+def get_vendor_foods(request):
+    """Get all food items for the current vendor"""
+    try:
+        foods = Food.objects.filter(vendor=request.user).order_by('-created_at')
+        data = [{
+            'id': food.id,
+            'name': food.name,
+            'description': food.description,
+            'price': food.price,
+            'image': food.image,
+            'category': food.category,
+            'isVeg': food.isVeg,
+            'is_available': food.is_available,
+            'rating': food.rating,
+            'created_at': food.created_at
+        } for food in foods]
+        return Response(data)
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated, IsVendorPermission])
+def update_food(request, food_id):
+    """Update a food item (vendor only)"""
+    try:
+        food = Food.objects.get(id=food_id, vendor=request.user)
+        data = request.data
+
+        # Update image if provided
+        if 'image' in request.FILES:
+            upload_result = cloudinary.uploader.upload(
+                request.FILES['image'],
+                folder="mealify_foods",
+                transformation=[
+                    {'width': 800, 'height': 600, 'crop': 'fill'},
+                    {'quality': 'auto'},
+                    {'fetch_format': 'auto'}
+                ]
+            )
+            food.image = upload_result['secure_url']
+
+        # Update other fields
+        if 'name' in data:
+            food.name = data['name']
+        if 'description' in data:
+            food.description = data['description']
+        if 'price' in data:
+            food.price = data['price']
+        if 'category' in data:
+            food.category = data['category']
+            food.isVeg = data['category'] == 'veg'
+        if 'is_available' in data:
+            food.is_available = data['is_available']
+
+        food.save()
+
+        return Response({
+            'message': 'Food item updated successfully',
+            'food': {
+                'id': food.id,
+                'name': food.name,
+                'price': food.price,
+                'image': food.image,
+                'category': food.category,
+                'is_available': food.is_available
+            }
+        })
+    except Food.DoesNotExist:
+        return Response({'error': 'Food item not found'}, status=404)
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated, IsVendorPermission])
+def delete_food(request, food_id):
+    """Delete a food item (vendor only)"""
+    try:
+        food = Food.objects.get(id=food_id, vendor=request.user)
+        food.delete()
+        return Response({'message': 'Food item deleted successfully'})
+    except Food.DoesNotExist:
+        return Response({'error': 'Food item not found'}, status=404)
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def become_vendor(request):
+    """Request to become a vendor"""
+    try:
+        user = request.user
+        if user.is_vendor:
+            return Response({'error': 'User is already a vendor'}, status=400)
+
+        data = request.data
+        user.is_vendor = True
+        user.store_name = data.get('store_name')
+        user.store_description = data.get('store_description', '')
+        user.save()
+
+        return Response({
+            'message': 'Successfully registered as vendor',
+            'store_name': user.store_name
+        })
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)
+
+class StaffLoginView(APIView):
+    def post(self, request):
+        staff_id = request.data.get("staff_id")
+        password = request.data.get("password")
+
+        if not staff_id or not password:
+            return Response({"error": "Staff ID and password are required"}, status=400)
+
+        try:
+            user = User.objects.get(staff_id=staff_id, is_staff_active=True)
+        except User.DoesNotExist:
+            return Response({"error": "Invalid staff ID or password"}, status=400)
+
+        user = authenticate(username=user.username, password=password)
+        if not user or not user.is_staff_member:
+            return Response({"error": "Invalid staff ID or password"}, status=400)
+
+        tokens = get_tokens_for_user(user)
+        
+        return Response({
+            "token": tokens["token"],
+            "refresh": tokens["refresh"],
+            "staff_id": user.staff_id,
+            "role": user.role,
+            "username": user.username,
+            "email": user.email
+        })
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_staff_account(request):
+    """Create a new staff account (Admin only)"""
+    if not request.user.role == 'admin':
+        return Response({"error": "Only admin can create staff accounts"}, status=403)
+
+    try:
+        data = request.data
+        email = data.get('email')
+        password = data.get('password')
+        role = data.get('role')
+        
+        if role not in ['manager', 'staff']:
+            return Response({"error": "Invalid role specified"}, status=400)
+
+        # Generate unique staff ID
+        import random
+        import string
+        staff_id = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+        while User.objects.filter(staff_id=staff_id).exists():
+            staff_id = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+
+        # Create user
+        user = User.objects.create_user(
+            username=email,
+            email=email,
+            password=password,
+            role=role,
+            staff_id=staff_id,
+            is_staff_active=True
+        )
+
+        # Create staff profile
+        StaffProfile.objects.create(
+            user=user,
+            department=data.get('department'),
+            phone_number=data.get('phone_number'),
+            address=data.get('address')
+        )
+
+        return Response({
+            "message": "Staff account created successfully",
+            "staff_id": staff_id
+        }, status=201)
+
+    except Exception as e:
+        return Response({"error": str(e)}, status=500)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_staff_list(request):
+    """Get list of all staff members (Admin only)"""
+    if not request.user.role == 'admin':
+        return Response({"error": "Only admin can view staff list"}, status=403)
+
+    try:
+        staff_users = User.objects.filter(role__in=['admin', 'manager', 'staff'])
+        data = [{
+            'id': user.id,
+            'email': user.email,
+            'staff_id': user.staff_id,
+            'role': user.role,
+            'is_active': user.is_staff_active,
+            'profile': {
+                'department': user.staff_profile.department if hasattr(user, 'staff_profile') else None,
+                'phone_number': user.staff_profile.phone_number if hasattr(user, 'staff_profile') else None,
+            }
+        } for user in staff_users]
+        
+        return Response(data)
+    except Exception as e:
+        return Response({"error": str(e)}, status=500)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def toggle_staff_status(request, user_id):
+    """Toggle staff account active status (Admin only)"""
+    if not request.user.role == 'admin':
+        return Response({"error": "Only admin can modify staff status"}, status=403)
+
+    try:
+        user = User.objects.get(id=user_id)
+        if user.role == 'admin':
+            return Response({"error": "Cannot modify admin status"}, status=400)
+
+        user.is_staff_active = not user.is_staff_active
+        user.save()
+
+        return Response({
+            "message": f"Staff account is now {'active' if user.is_staff_active else 'inactive'}",
+            "is_active": user.is_staff_active
+        })
+    except User.DoesNotExist:
+        return Response({"error": "User not found"}, status=404)
+    except Exception as e:
+        return Response({"error": str(e)}, status=500)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def verify_token(request):
+    """Verify if the token is valid and return user info"""
+    try:
+        user = request.user
+        return Response({
+            'valid': True,
+            'role': user.role,
+            'username': user.username,
+            'email': user.email
+        })
+    except Exception as e:
+        return Response({'error': str(e)}, status=401)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def cancel_order(request, order_id):
+    """Cancel an order (user only)"""
+    try:
+        order = Order.objects.get(id=order_id, user=request.user)
+        
+        # Only allow cancellation of pending orders
+        if order.status != 'pending':
+            return Response({'error': 'Only pending orders can be cancelled'}, status=400)
+        
+        order.status = 'cancelled'
+        order.save()
+        
+        return Response({'message': 'Order cancelled successfully'})
+    except Order.DoesNotExist:
+        return Response({'error': 'Order not found'}, status=404)
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsVendorPermission])
+def get_vendor_orders(request):
+    """Get all orders for the current vendor"""
+    try:
+        print(f"Getting orders for vendor: {request.user.username}")
+        print(f"User role: {request.user.role}")
+        print(f"Is vendor: {request.user.is_vendor}")
+        print(f"Auth header: {request.headers.get('Authorization', 'No auth header')}")
+        
+        # Get all orders that contain food items from this vendor
+        vendor_foods = Food.objects.filter(vendor=request.user)
+        print(f"Found {vendor_foods.count()} food items for this vendor")
+        
+        # Debug food items
+        for food in vendor_foods:
+            print(f"Food {food.id}: {food.name}, vendor={food.vendor.username if food.vendor else 'None'}")
+        
+        orders = Order.objects.filter(items__food__in=vendor_foods).distinct().order_by('-created_at')
+        print(f"Found {orders.count()} orders for this vendor")
+        
+        # Debug order details
+        for order in orders:
+            print(f"Order {order.id}: status={order.status}, total={order.total}, items={order.items.count()}")
+        
+        # Serialize the orders
+        serializer = OrderSerializer(orders, many=True)
+        return Response(serializer.data)
+    except Exception as e:
+        print(f"Error in get_vendor_orders: {str(e)}")
+        print(f"Exception type: {type(e)}")
+        print(f"Exception args: {e.args}")
+        return Response({'error': str(e)}, status=500)
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated, IsVendorPermission])
+def update_order_status(request, order_id):
+    """Update the status of an order (vendor only)"""
+    try:
+        # Get the order
+        order = Order.objects.get(id=order_id)
+        
+        # Check if the order contains food from this vendor
+        vendor_foods = Food.objects.filter(vendor=request.user)
+        if not order.items.filter(food__in=vendor_foods).exists():
+            return Response({'error': 'You do not have permission to update this order'}, status=403)
+        
+        # Get the new status
+        new_status = request.data.get('status')
+        if not new_status:
+            return Response({'error': 'Status is required'}, status=400)
+        
+        # Validate the status
+        valid_statuses = ['pending', 'preparing', 'completed', 'cancelled']
+        if new_status not in valid_statuses:
+            return Response({'error': f'Invalid status. Must be one of: {", ".join(valid_statuses)}'}, status=400)
+        
+        # Update the order status
+        order.status = new_status
+        order.save()
+        
+        return Response({'message': f'Order status updated to {new_status}'})
+    except Order.DoesNotExist:
+        return Response({'error': 'Order not found'}, status=404)
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_recent_orders(request):
+    """Get recent orders for the current user"""
+    try:
+        # Get the 5 most recent orders
+        orders = Order.objects.filter(user=request.user).order_by('-created_at')[:5]
+        serializer = OrderSerializer(orders, many=True)
+        return Response(serializer.data)
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)
