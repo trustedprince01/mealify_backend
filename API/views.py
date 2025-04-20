@@ -32,15 +32,24 @@ from rest_framework.permissions import BasePermission
 
 
 @api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def get_all_foods(request):
-    foods = Food.objects.all().order_by('-created_at')  # latest first
-    serializer = FoodSerializer(foods, many=True)
-    return Response(serializer.data)
+    """Get all available foods"""
+    try:
+        foods = Food.objects.all().order_by('-created_at')  # latest first
+        serializer = FoodSerializer(foods, many=True)
+        return Response(serializer.data)
+    except Exception as e:
+        print(f"Error fetching foods: {str(e)}")
+        return Response(
+            {'error': 'Could not load foods, try again later'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 
 def get_tokens_for_user(user):
     refresh = RefreshToken.for_user(user)
     return {
-        'token': str(refresh.access_token),
+        'token': f"Bearer {str(refresh.access_token)}",
         'refresh': str(refresh)
     }
 
@@ -65,6 +74,7 @@ class LoginView(APIView):
     def post(self, request):
         email = request.data.get("email")
         password = request.data.get("password")
+        login_type = request.data.get("login_type", "customer")  # Default to customer if not specified
 
         if not email or not password:
             return Response({"error": "Email and password are required"}, status=400)
@@ -73,6 +83,13 @@ class LoginView(APIView):
             user = User.objects.get(email=email)
             if not user.check_password(password):
                 return Response({"error": "Invalid email or password"}, status=400)
+                
+            # Validate login type against user role
+            if login_type == "vendor" and not user.is_vendor:
+                return Response({"error": "This account does not have vendor access"}, status=403)
+                
+            if login_type == "customer" and user.is_vendor and not user.is_staff_member:
+                return Response({"error": "Vendor accounts should use the vendor login"}, status=403)
 
             tokens = get_tokens_for_user(user)
             return Response({
@@ -81,6 +98,7 @@ class LoginView(APIView):
                 "username": user.username,
                 "email": user.email,
                 "role": user.role,
+                "is_vendor": user.is_vendor,
                 "first_name": user.first_name,
                 "last_name": user.last_name
             }, status=200)
@@ -213,6 +231,7 @@ def place_order(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def user_orders(request):
+    """Get all orders for the current user"""
     try:
         print(f"Getting orders for user: {request.user.username}")
         print(f"User role: {request.user.role}")
@@ -227,9 +246,17 @@ def user_orders(request):
         
         serializer = OrderSerializer(orders, many=True)
         return Response(serializer.data)
+    except Order.DoesNotExist:
+        return Response(
+            {'error': 'No orders found'}, 
+            status=status.HTTP_404_NOT_FOUND
+        )
     except Exception as e:
         print(f"Error in user_orders: {str(e)}")
-        return Response({'error': str(e)}, status=500)
+        return Response(
+            {'error': 'Failed to fetch orders, try again later'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 
 
 
@@ -525,7 +552,11 @@ def get_user_profile(request):
         }
         return Response(profile_data)
     except Exception as e:
-        return Response({'error': str(e)}, status=500)
+        print(f"Error fetching user profile: {str(e)}")
+        return Response(
+            {'error': 'Could not load profile, try again later'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 
 @api_view(['PUT'])
 @permission_classes([IsAuthenticated])
