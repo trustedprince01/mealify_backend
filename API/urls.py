@@ -48,6 +48,7 @@ urlpatterns = [
 
     # Dashboard endpoints
     path('dashboard/stats/', views.get_dashboard_stats, name='dashboard_stats'),
+    path('vendor/dashboard/stats/', views.get_vendor_stats, name='vendor_dashboard_stats'),
 
     # Vendor endpoints
     path('vendor/become/', views.become_vendor, name='become_vendor'),

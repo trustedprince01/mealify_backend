@@ -38,11 +38,26 @@ class StaffProfile(models.Model):
         return f"{self.user.email} - {self.user.role}"
 
 class Food(models.Model):
+    DIET_TYPE_CHOICES = [
+        ('veg', 'Vegetarian'),
+        ('non-veg', 'Non-Vegetarian')
+    ]
+
+    FOOD_TYPE_CHOICES = [
+        ('other', 'Other'),
+        ('burger', 'Burgers'),
+        ('pizza', 'Pizza'),
+        ('salad', 'Salads'),
+        ('dessert', 'Dessert'),
+        ('drink', 'Drinks')
+    ]
+    
     name = models.CharField(max_length=255)
     description = models.TextField(default='No description available', blank=False, null=False)
     price = models.DecimalField(max_digits=10, decimal_places=2)
     image = models.URLField(max_length=500, blank=True, null=True)
-    category = models.CharField(max_length=100, default='Other')
+    diet_type = models.CharField(max_length=100, choices=DIET_TYPE_CHOICES, default='non-veg')
+    food_type = models.CharField(max_length=100, choices=FOOD_TYPE_CHOICES, default='other')
     vendor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True, blank=True, related_name='foods')
     rating = models.DecimalField(max_digits=3, decimal_places=2, default=0.00)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -50,7 +65,13 @@ class Food(models.Model):
 
     def __str__(self):
         return self.name
+    
+    # Helper property for the frontend
+    @property
+    def isVeg(self):
+        return self.diet_type == 'veg'
 
+        
 class CartItem(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     food = models.ForeignKey(Food, on_delete=models.CASCADE)
