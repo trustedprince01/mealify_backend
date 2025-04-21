@@ -30,6 +30,9 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.permissions import BasePermission
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from datetime import datetime, timedelta
+import random
+import string
 
 
 
@@ -89,10 +92,10 @@ class LoginView(APIView):
             # Validate login type against user role
             # Modify the LoginView.post method in views.py
             if login_type == "vendor":
-                if not user.is_vendor and not user.is_superuser:  # Allow superuser/admin too
+                if not user.is_vendor and not user.is_superuser and user.role != 'admin':  # Allow admin role too
                     return Response({"error": "This account does not have vendor access"}, status=403)
                 
-            if login_type == "customer" and user.is_vendor and not user.is_staff_member:
+            if login_type == "customer" and user.is_vendor and not user.is_staff_member and user.role != 'admin':
                 return Response({"error": "Vendor accounts should use the vendor login"}, status=403)
 
             tokens = get_tokens_for_user(user)
@@ -660,14 +663,15 @@ def upload_profile_picture(request):
 
 class IsVendorPermission(BasePermission):
     def has_permission(self, request, view):
-        return request.user.is_authenticated and request.user.is_vendor
+        # Allow access if user is authenticated AND (is a vendor OR is an admin)
+        return request.user.is_authenticated and (request.user.is_vendor or request.user.role == 'admin')
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def add_food(request):
     """Add a new food item by a vendor"""
-    if not request.user.is_vendor:
-        return Response({"error": "Only vendors can add food items"}, status=status.HTTP_403_FORBIDDEN)
+    if not request.user.is_vendor and request.user.role != 'admin':
+        return Response({"error": "Only vendors and admins can add food items"}, status=status.HTTP_403_FORBIDDEN)
     
     try:
         # Get form data
@@ -1099,3 +1103,175 @@ def get_vendor_stats(request):
             'totalMenuItems': 0,
             'totalRevenue': 0
         })
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_admin_stats(request):
+    """Get comprehensive admin statistics for the admin dashboard"""
+    try:
+        if not request.user.is_vendor and request.user.role != 'admin':
+            return Response({'error': 'Unauthorized access'}, status=403)
+        
+        # Get user counts
+        total_users = User.objects.count()
+        total_customers = User.objects.filter(is_vendor=False, role='customer').count()
+        total_vendors = User.objects.filter(is_vendor=True).count()
+        
+        # Get order statistics
+        total_orders = Order.objects.count()
+        orders_today = Order.objects.filter(created_at__date=datetime.now().date()).count()
+        
+        # Get menu item count
+        total_menu_items = Food.objects.count()
+        
+        # Calculate total revenue from completed and delivered orders
+        completed_orders = Order.objects.filter(status__in=['completed', 'delivered'])
+        total_revenue = sum(order.total or 0 for order in completed_orders)
+        
+        # Weekly order data (past 7 days)
+        today = datetime.now().date()
+        days = [(today - timedelta(days=i)).strftime('%a') for i in range(6, -1, -1)]
+        order_data = []
+        
+        for i, day in enumerate(days):
+            day_date = today - timedelta(days=6-i)
+            day_orders = Order.objects.filter(created_at__date=day_date).count()
+            order_data.append({
+                'day': day,
+                'orders': day_orders
+            })
+        
+        # Monthly revenue data (past 6 months)
+        current_month = datetime.now().month
+        current_year = datetime.now().year
+        month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+        revenue_data = []
+        
+        for i in range(5, -1, -1):
+            # Calculate month index
+            month_idx = (current_month - i - 1) % 12
+            year = current_year if month_idx < current_month else current_year - 1
+            month = month_idx + 1  # months are 1-indexed
+            
+            # Get orders in this month
+            month_orders = Order.objects.filter(
+                created_at__month=month,
+                created_at__year=year,
+                status__in=['completed', 'delivered']
+            )
+            
+            # Calculate revenue
+            month_revenue = sum(order.total or 0 for order in month_orders)
+            
+            revenue_data.append({
+                'month': month_names[month_idx],
+                'revenue': float(month_revenue)
+            })
+        
+        # Compile all stats
+        stats = {
+            'userStats': {
+                'totalUsers': total_users,
+                'totalCustomers': total_customers,
+                'totalVendors': total_vendors
+            },
+            'orderStats': {
+                'totalOrders': total_orders,
+                'ordersToday': orders_today
+            },
+            'menuStats': {
+                'totalMenuItems': total_menu_items
+            },
+            'revenueStats': {
+                'totalRevenue': float(total_revenue)
+            },
+            'chartData': {
+                'orderData': order_data,
+                'revenueData': revenue_data
+            }
+        }
+        
+        return Response(stats)
+    except Exception as e:
+        print(f"Error getting admin stats: {str(e)}")
+        return Response({'error': str(e)}, status=500)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_all_users(request):
+    """Get all users for admin management"""
+    try:
+        if not request.user.is_vendor and request.user.role != 'admin':
+            return Response({'error': 'Unauthorized access'}, status=403)
+        
+        users = User.objects.all().order_by('-date_joined')
+        
+        user_data = []
+        for user in users:
+            role = 'Vendor' if user.is_vendor else user.role.capitalize()
+            user_data.append({
+                'id': user.id,
+                'name': f"{user.first_name} {user.last_name}".strip() or user.username,
+                'email': user.email,
+                'role': role,
+                'joinDate': user.date_joined.strftime('%Y-%m-%d'),
+                'active': user.is_active
+            })
+        
+        return Response(user_data)
+    except Exception as e:
+        print(f"Error getting user list: {str(e)}")
+        return Response({'error': str(e)}, status=500)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def toggle_user_status(request, user_id):
+    """Enable or disable a user account"""
+    try:
+        if not request.user.is_vendor and request.user.role != 'admin':
+            return Response({'error': 'Unauthorized access'}, status=403)
+        
+        # Prevent modifying your own account
+        if int(user_id) == request.user.id:
+            return Response({'error': 'Cannot modify your own account'}, status=400)
+        
+        user = User.objects.get(id=user_id)
+        user.is_active = not user.is_active
+        user.save()
+        
+        return Response({
+            'message': f"User account has been {'activated' if user.is_active else 'deactivated'}",
+            'active': user.is_active
+        })
+    except User.DoesNotExist:
+        return Response({'error': 'User not found'}, status=404)
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def reset_user_password(request, user_id):
+    """Reset a user's password to a random string and send email"""
+    try:
+        if not request.user.is_vendor and request.user.role != 'admin':
+            return Response({'error': 'Unauthorized access'}, status=403)
+        
+        user = User.objects.get(id=user_id)
+        
+        # Generate a random password
+        random_password = ''.join(random.choices(string.ascii_letters + string.digits, k=10))
+        user.set_password(random_password)
+        user.save()
+        
+        # In a real system, you would send an email here
+        # For now, we'll just return the password in the response
+        # (in production, never return passwords in responses)
+        
+        return Response({
+            'message': 'Password has been reset',
+            'temp_password': random_password  # Remove this in production
+        })
+    except User.DoesNotExist:
+        return Response({'error': 'User not found'}, status=404)
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)

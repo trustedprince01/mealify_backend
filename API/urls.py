@@ -56,6 +56,12 @@ urlpatterns = [
     path('vendor/foods/add/', views.add_food, name='add_food'),
     path('vendor/foods/<int:food_id>/', views.update_food, name='update_food'),
     path('vendor/foods/<int:food_id>/delete/', views.delete_food, name='delete_food'),
+
+    # Admin endpoints
+    path('admin/stats/', views.get_admin_stats, name='admin_stats'),
+    path('admin/users/', views.get_all_users, name='admin_users'),
+    path('admin/users/<int:user_id>/toggle-status/', views.toggle_user_status, name='toggle_user_status'),
+    path('admin/users/<int:user_id>/reset-password/', views.reset_user_password, name='reset_user_password'),
 ]
 
 
