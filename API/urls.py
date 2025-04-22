@@ -5,6 +5,9 @@ from . import views
 from .views import update_or_delete_cart_item
 
 urlpatterns = [
+    # Health check
+    path('health/', views.health_check, name='health_check'),
+    
     # Auth endpoints
     path('auth/register/', RegisterView.as_view(), name='register'),
     path('auth/login/', LoginView.as_view(), name='login'),

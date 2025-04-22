@@ -1,7 +1,7 @@
 from .paystack import initialize_payment, verify_payment
 from .models import Payment, DeliveryAddress, Order, User
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from django.http import JsonResponse
 import json
@@ -1275,3 +1275,11 @@ def reset_user_password(request, user_id):
         return Response({'error': 'User not found'}, status=404)
     except Exception as e:
         return Response({'error': str(e)}, status=500)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def health_check(request):
+    return Response({
+        'status': 'healthy',
+        'message': 'API is operational'
+    }, status=status.HTTP_200_OK)
