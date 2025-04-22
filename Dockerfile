@@ -17,6 +17,11 @@ COPY . .
 # Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Create a patch script to fix settings.py
+RUN echo '#!/bin/bash\nsed -i "s/CORS_ALLOWED_ORIGINS = \[/CORS_ALLOWED_ORIGINS = \[\\n    \"https:\/\/mealify-foods.up.railway.app\",/" mealify_backend/settings.py' > fix_settings.sh
+RUN chmod +x fix_settings.sh
+RUN ./fix_settings.sh
+
 # Debug - show directory listing
 RUN echo "Directory listing:" && ls -la
 RUN echo "API directory:" && ls -la api || echo "api directory not found"
@@ -37,5 +42,5 @@ RUN mkdir -p staticfiles
 # Expose port
 EXPOSE 8000
 
-# Start command
-CMD python manage.py migrate && python manage.py collectstatic --noinput && gunicorn mealify_backend.wsgi --log-file -
+# Start command - add settings fix at startup to be extra sure
+CMD python -c "import os; os.environ['CORS_ALLOW_ALL_ORIGINS'] = 'True'" && python manage.py migrate && python manage.py collectstatic --noinput && gunicorn mealify_backend.wsgi --log-file -
