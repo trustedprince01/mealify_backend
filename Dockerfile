@@ -14,16 +14,25 @@ WORKDIR /app
 # Copy project files
 COPY . .
 
-# Debug - show directory listing
-RUN echo "Directory listing:" && ls -la
-
 # Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Create necessary directories (including api if it doesn't exist)
-RUN mkdir -p staticfiles
+# Debug - show directory listing
+RUN echo "Directory listing:" && ls -la
+RUN echo "API directory:" && ls -la api || echo "api directory not found"
+
+# Create necessary files for the User model if they don't exist
 RUN mkdir -p api
 RUN touch api/__init__.py
+
+# Create the User model if it doesn't exist
+RUN echo 'from django.contrib.auth.models import AbstractUser\nfrom django.db import models\n\nclass User(AbstractUser):\n    is_vendor = models.BooleanField(default=False)\n    is_customer = models.BooleanField(default=False)\n    is_staff_user = models.BooleanField(default=False)' > api/models.py
+
+# Create a minimal admin.py
+RUN echo 'from django.contrib import admin\nfrom .models import User\n\nadmin.site.register(User)' > api/admin.py
+
+# Create directory for static files
+RUN mkdir -p staticfiles
 
 # Expose port
 EXPOSE 8000
