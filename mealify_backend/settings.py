@@ -17,6 +17,7 @@ import cloudinary.uploader
 import cloudinary.api
 from dotenv import load_dotenv
 import os
+import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -108,12 +109,12 @@ FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
 
 CORS_ALLOW_ALL_ORIGINS = True  # For easier debugging
 CORS_ALLOWED_ORIGINS = [
-    os.environ.get('FRONTEND_URL', 'mealify-foods.up.railway.app'),
+    os.environ.get('FRONTEND_URL', 'https://mealify-foods.up.railway.app'),
     "http://localhost:8080",
     "http://localhost:3000",
     "http://127.0.0.1:8080",
     "http://127.0.0.1:3000",
-    "https://mealify-food.up.railway.app"  # Your frontend URL
+    "https://mealify-food.up.railway.app"
 ]
 
 CORS_ALLOW_CREDENTIALS = True
@@ -162,25 +163,11 @@ PAYSTACK_VERIFY_URL = "https://api.paystack.co/transaction/verify/"
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-# Use PostgreSQL on Railway, fall back to SQLite for local development
-if os.environ.get('PGDATABASE'):
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.environ.get('PGDATABASE'),
-            'USER': os.environ.get('PGUSER'),
-            'PASSWORD': os.environ.get('PGPASSWORD'),
-            'HOST': os.environ.get('PGHOST'),
-            'PORT': os.environ.get('PGPORT'),
-        }
-    }
-else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
-    }
+DATABASE_URL = os.environ.get('DATABASE_URL', 'postgresql://postgres:eyNONmtAkUBkleVttaoChspaKMNdwEuN@shinkansen.proxy.rlwy.net:34640/railway')
+
+DATABASES = {
+    'default': dj_database_url.config(default=DATABASE_URL)
+}
 
 
 # Password validation
