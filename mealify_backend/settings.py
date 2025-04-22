@@ -38,12 +38,12 @@ cloudinary.config(
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-7812*8a#4%y5pwdtox$393*n68#wij1+k!!&!#r#=u@gfaf6cl'
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-7812*8a#4%y5pwdtox$393*n68#wij1+k!!&!#r#=u@gfaf6cl')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']  # Allow all hosts on Railway
 
 
 # Application definition
@@ -66,14 +66,13 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # Add whitenoise for static files
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
-    
 ]
 
 # Add REST framework settings
@@ -104,9 +103,12 @@ SIMPLE_JWT = {
     'TOKEN_TYPE_CLAIM': 'token_type',
 }
 
-# Add CORS settings
-CORS_ALLOW_ALL_ORIGINS = True  # For development only
+# Add CORS settings - Get frontend URL from environment variable or use default
+FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
+
+CORS_ALLOW_ALL_ORIGINS = False  # More secure for production
 CORS_ALLOWED_ORIGINS = [
+    FRONTEND_URL,
     "http://localhost:8080",
     "http://localhost:3000",
     "http://127.0.0.1:8080",
@@ -149,8 +151,8 @@ TEMPLATES = [
 WSGI_APPLICATION = 'mealify_backend.wsgi.application'
 
 
-PAYSTACK_SECRET_KEY = "sk_test_a380dda6a29099c572c9a3c5034425240036c5ee"  # Replace with your actual secret key
-PAYSTACK_PUBLIC_KEY = "pk_test_f328575f8f9f690f5ed43786a9c5c456c277719b"  # Replace with your actual public key
+PAYSTACK_SECRET_KEY = os.environ.get('PAYSTACK_SECRET_KEY', "sk_test_a380dda6a29099c572c9a3c5034425240036c5ee")
+PAYSTACK_PUBLIC_KEY = os.environ.get('PAYSTACK_PUBLIC_KEY', "pk_test_f328575f8f9f690f5ed43786a9c5c456c277719b")
 PAYSTACK_BASE_URL = "https://api.paystack.co"
 
 PAYSTACK_VERIFY_URL = "https://api.paystack.co/transaction/verify/"
@@ -159,12 +161,25 @@ PAYSTACK_VERIFY_URL = "https://api.paystack.co/transaction/verify/"
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+# Use PostgreSQL on Railway, fall back to SQLite for local development
+if os.environ.get('PGDATABASE'):
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.environ.get('PGDATABASE'),
+            'USER': os.environ.get('PGUSER'),
+            'PASSWORD': os.environ.get('PGPASSWORD'),
+            'HOST': os.environ.get('PGHOST'),
+            'PORT': os.environ.get('PGPORT'),
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 
 # Password validation
@@ -202,6 +217,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
@@ -209,3 +226,5 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'api.User'
+
+REACT_APP_API_URL = "https://mealify.up.railway.app"

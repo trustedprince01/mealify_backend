@@ -1,0 +1,1 @@
+web: gunicorn mealify_backend.wsgi --log-file - 
