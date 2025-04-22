@@ -25,11 +25,11 @@ RUN echo "API directory:" && ls -la api || echo "api directory not found"
 RUN mkdir -p api
 RUN touch api/__init__.py
 
-# Create the User model if it doesn't exist
+# Create basic API files
 RUN echo 'from django.contrib.auth.models import AbstractUser\nfrom django.db import models\n\nclass User(AbstractUser):\n    is_vendor = models.BooleanField(default=False)\n    is_customer = models.BooleanField(default=False)\n    is_staff_user = models.BooleanField(default=False)' > api/models.py
-
-# Create a minimal admin.py
 RUN echo 'from django.contrib import admin\nfrom .models import User\n\nadmin.site.register(User)' > api/admin.py
+RUN echo 'from django.urls import path\nfrom . import views\n\nurlpatterns = [\n    # Add your URL patterns here\n    path("health/", views.health, name="health"),\n]' > api/urls.py
+RUN echo 'from django.http import JsonResponse\n\ndef health(request):\n    return JsonResponse({"status": "ok"})' > api/views.py
 
 # Create directory for static files
 RUN mkdir -p staticfiles
