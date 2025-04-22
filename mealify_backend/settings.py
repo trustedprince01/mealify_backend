@@ -106,14 +106,14 @@ SIMPLE_JWT = {
 # Add CORS settings - Get frontend URL from environment variable or use default
 FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
 
-CORS_ALLOW_ALL_ORIGINS = True  # More secure for production
+CORS_ALLOW_ALL_ORIGINS = True  # For easier debugging
 CORS_ALLOWED_ORIGINS = [
     os.environ.get('FRONTEND_URL', 'http://localhost:3000'),
     "http://localhost:8080",
     "http://localhost:3000",
     "http://127.0.0.1:8080",
     "http://127.0.0.1:3000",
-    "https://mealify-food.up.railway.app"  # Add your actual frontend domain
+    "https://mealify-food.up.railway.app"  # Your frontend URL
 ]
 
 CORS_ALLOW_CREDENTIALS = True
