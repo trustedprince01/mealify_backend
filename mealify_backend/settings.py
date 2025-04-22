@@ -65,20 +65,21 @@ INSTALLED_APPS = [
 ]
 
 # Add this class after imports
-class CorsMiddleware:
-    def __init__(self, get_response):
-        self.get_response = get_response
-
-    def __call__(self, request):
-        response = self.get_response(request)
-        response["Access-Control-Allow-Origin"] = "*"
-        response["Access-Control-Allow-Headers"] = "*"
-        response["Access-Control-Allow-Methods"] = "*"
-        return response
+# Removing custom CorsMiddleware as it can conflict with django-cors-headers
+# class CorsMiddleware:
+#     def __init__(self, get_response):
+#         self.get_response = get_response
+# 
+#     def __call__(self, request):
+#         response = self.get_response(request)
+#         response["Access-Control-Allow-Origin"] = "*"
+#         response["Access-Control-Allow-Headers"] = "*"
+#         response["Access-Control-Allow-Methods"] = "*"
+#         return response
 
 MIDDLEWARE = [
-    'mealify_backend.settings.CorsMiddleware',  # Add this first
-    'corsheaders.middleware.CorsMiddleware',
+    # 'mealify_backend.settings.CorsMiddleware',  # Remove this first
+    'corsheaders.middleware.CorsMiddleware',  # This should be first
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',  # Add whitenoise for static files
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -120,18 +121,24 @@ SIMPLE_JWT = {
 # Add CORS settings
 FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://mealify-foods.up.railway.app')
 
-CORS_ALLOW_ALL_ORIGINS = True  # For development/testing only
-CORS_ALLOW_CREDENTIALS = True
+# Set to False in production and use specific origins instead
+CORS_ALLOW_ALL_ORIGINS = True  
+
+# Add all your allowed origins explicitly
 CORS_ALLOWED_ORIGINS = [
-    FRONTEND_URL,
     'https://mealify-foods.up.railway.app',
+    'https://mealify-food.up.railway.app',
     'http://localhost:5173',
     'http://localhost:3000',
     'http://localhost:8080',
 ]
+
+# Additional CORS settings for proper handling
+CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
 CORS_ALLOW_HEADERS = ["*"]
-CORS_EXPOSE_HEADERS = []
+CORS_EXPOSE_HEADERS = ["*"]
+CORS_PREFLIGHT_MAX_AGE = 86400  # 24 hours
 
 ROOT_URLCONF = 'mealify_backend.urls'
 

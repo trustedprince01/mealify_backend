@@ -5,6 +5,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from django.http import JsonResponse
 import json
+from django.conf import settings
 
 from rest_framework.views import APIView
 from rest_framework import status
@@ -24,7 +25,6 @@ from rest_framework.decorators import permission_classes
 from .models import Order, CartItem, OrderItem
 from .serializers import OrderSerializer
 import requests
-from django.conf import settings
 import cloudinary.uploader
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.permissions import BasePermission
@@ -1283,3 +1283,28 @@ def health_check(request):
         'status': 'healthy',
         'message': 'API is operational'
     }, status=status.HTTP_200_OK)
+
+@api_view(['GET', 'OPTIONS'])
+@permission_classes([AllowAny])
+def cors_debug(request):
+    """Debug endpoint to help diagnose CORS issues"""
+    headers = {}
+    for key, value in request.headers.items():
+        headers[key] = value
+        
+    data = {
+        'message': 'CORS debug endpoint',
+        'method': request.method,
+        'headers': headers,
+        'cors_middleware_present': 'corsheaders.middleware.CorsMiddleware' in settings.MIDDLEWARE,
+        'cors_allow_all': getattr(settings, 'CORS_ALLOW_ALL_ORIGINS', False),
+        'cors_allowed_origins': getattr(settings, 'CORS_ALLOWED_ORIGINS', []),
+    }
+    
+    # Add explicit CORS headers to the response
+    response = Response(data, status=status.HTTP_200_OK)
+    response["Access-Control-Allow-Origin"] = request.headers.get('Origin', '*')
+    response["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+    response["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+    
+    return response

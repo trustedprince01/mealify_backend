@@ -8,6 +8,9 @@ urlpatterns = [
     # Health check
     path('health/', views.health_check, name='health_check'),
     
+    # CORS Debug
+    path('cors-debug/', views.cors_debug, name='cors_debug'),
+    
     # Auth endpoints
     path('auth/register/', RegisterView.as_view(), name='register'),
     path('auth/login/', LoginView.as_view(), name='login'),
