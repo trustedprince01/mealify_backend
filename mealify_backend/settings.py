@@ -64,7 +64,20 @@ INSTALLED_APPS = [
    
 ]
 
+# Add this class after imports
+class CorsMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        response = self.get_response(request)
+        response["Access-Control-Allow-Origin"] = "*"
+        response["Access-Control-Allow-Headers"] = "*"
+        response["Access-Control-Allow-Methods"] = "*"
+        return response
+
 MIDDLEWARE = [
+    'mealify_backend.settings.CorsMiddleware',  # Add this first
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',  # Add whitenoise for static files
