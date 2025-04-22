@@ -7,6 +7,7 @@ ENV PYTHONUNBUFFERED 1
 ENV DEBUG=True
 ENV SECRET_KEY=temporary-key-for-build-only
 ENV PYTHONPATH=/app
+ENV CORS_ALLOW_ALL_ORIGINS=True
 
 # Set working directory
 WORKDIR /app
@@ -17,8 +18,9 @@ COPY . .
 # Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Create a patch script to fix settings.py
-RUN echo '#!/bin/bash\nsed -i "s/CORS_ALLOWED_ORIGINS = \[/CORS_ALLOWED_ORIGINS = \[\\n    \"https:\/\/mealify-foods.up.railway.app\",/" mealify_backend/settings.py' > fix_settings.sh
+# Create the simplest settings.py fix
+RUN echo '#!/bin/bash\nsed -i "s/CORS_ALLOWED_ORIGINS = \\[/CORS_ALLOWED_ORIGINS = \\[\\n    \\"https:\\/\\/mealify-foods.up.railway.app\\",/g" mealify_backend/settings.py' > fix_settings.sh
+RUN cat fix_settings.sh
 RUN chmod +x fix_settings.sh
 RUN ./fix_settings.sh
 
@@ -42,5 +44,5 @@ RUN mkdir -p staticfiles
 # Expose port
 EXPOSE 8000
 
-# Start command - add settings fix at startup to be extra sure
-CMD python -c "import os; os.environ['CORS_ALLOW_ALL_ORIGINS'] = 'True'" && python manage.py migrate && python manage.py collectstatic --noinput && gunicorn mealify_backend.wsgi --log-file -
+# Start command
+CMD python manage.py migrate && python manage.py collectstatic --noinput && gunicorn mealify_backend.wsgi --log-file -
