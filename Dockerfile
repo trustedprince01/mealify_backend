@@ -1,5 +1,5 @@
-# Use Python 3.9 image
-FROM python:3.9-slim
+# Use Python 3.11 image
+FROM python:3.11-slim
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE 1
@@ -16,4 +16,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Collect static files and run migrations during container start
-CMD python manage.py collectstatic --noinput && python manage.py migrate && gunicorn mealify_backend.wsgi:application --bind 0.0.0.0:$PORT
+RUN python manage.py collectstatic --noinput
+
+# Expose port
+EXPOSE 8000
+
+# Collect static files and run migrations during container start
+CMD ["gunicorn", "mealify_backend.wsgi", "--log-file", "-"]
