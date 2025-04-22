@@ -1,1 +1,1 @@
-web: gunicorn mealify_backend.wsgi --log-file - 
+web: python manage.py collectstatic --noinput && gunicorn mealify_backend.wsgi --log-file - 

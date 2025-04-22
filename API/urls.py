@@ -7,6 +7,7 @@ from .views import update_or_delete_cart_item
 urlpatterns = [
     # Health check
     path('health/', views.health_check, name='health_check'),
+    path('direct-health/', views.direct_health_check, name='direct_health_check'),
     
     # CORS Debug
     path('cors-debug/', views.cors_debug, name='cors_debug'),
