@@ -11,24 +11,22 @@ ENV PYTHONPATH=/app
 # Set working directory
 WORKDIR /app
 
-# Print directory structure for debugging
-RUN ls -la
-
-# Install dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
 # Copy project files
 COPY . .
 
-# Debug - check if api directory exists
-RUN echo "Directory listing after copy:" && ls -la && echo "API directory:" && ls -la api
+# Debug - show directory listing
+RUN echo "Directory listing:" && ls -la
 
-# Create directory for static files
+# Install dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Create necessary directories (including api if it doesn't exist)
 RUN mkdir -p staticfiles
+RUN mkdir -p api
+RUN touch api/__init__.py
 
 # Expose port
 EXPOSE 8000
 
 # Start command
-CMD python manage.py collectstatic --noinput && gunicorn mealify_backend.wsgi --log-file -
+CMD python manage.py migrate && python manage.py collectstatic --noinput && gunicorn mealify_backend.wsgi --log-file -
