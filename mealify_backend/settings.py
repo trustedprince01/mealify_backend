@@ -107,17 +107,16 @@ SIMPLE_JWT = {
 # Add CORS settings
 FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://mealify-foods.up.railway.app')
 
-CORS_ALLOW_ALL_ORIGINS = True  # For testing
-
-CORS_ALLOWED_ORIGINS = [
-    "https://mealify-foods.up.railway.app",  # Your frontend domain (note the 's')
-    "http://localhost:3000",
-    # other origins
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ORIGIN_ALLOW_ALL = True  # Add this for older django-cors-headers versions
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
 ]
-
-CORS_ALLOW_CREDENTIALS = True
-
-# Add CORS headers
 CORS_ALLOW_HEADERS = [
     'accept',
     'accept-encoding',
@@ -129,6 +128,8 @@ CORS_ALLOW_HEADERS = [
     'x-csrftoken',
     'x-requested-with',
 ]
+CORS_EXPOSE_HEADERS = []
+CORS_ALLOW_CREDENTIALS = True
 
 ROOT_URLCONF = 'mealify_backend.urls'
 
