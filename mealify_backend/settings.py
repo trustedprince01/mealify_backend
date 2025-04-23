@@ -42,9 +42,12 @@ cloudinary.config(
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-7812*8a#4%y5pwdtox$393*n68#wij1+k!!&!#r#=u@gfaf6cl')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get('DEBUG', 'False') == 'True'
+DEBUG = True
 
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',')
+ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1'
+]
 
 # Application definition
 
@@ -119,14 +122,14 @@ SIMPLE_JWT = {
 # Add CORS settings - Update to handle both local and Railway deployments
 FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:8080')
 
-CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOW_ALL_ORIGINS = True  # For local development
+CORS_ALLOW_CREDENTIALS = True
+
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:8080',
     'http://localhost:5173',
-    'http://localhost:3000',
-    os.environ.get('FRONTEND_URL', 'https://mealify-frontend.vercel.app'),
+    'http://localhost:3000'
 ]
-CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOW_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
 CORS_ALLOW_HEADERS = ["*"]
@@ -165,12 +168,10 @@ PAYSTACK_VERIFY_URL = "https://api.paystack.co/transaction/verify/"
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 DATABASES = {
-    'default': dj_database_url.config(
-        default='sqlite:///db.sqlite3',
-        conn_max_age=600,
-        conn_health_checks=True,
-        ssl_require=True,
-    )
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
 }
 
 # Password validation

@@ -17,7 +17,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy project files
 COPY . .
-
 # Create directory for static files
 RUN mkdir -p staticfiles
 
