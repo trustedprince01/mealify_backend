@@ -21,12 +21,15 @@ COPY . .
 # Create directory for static files
 RUN mkdir -p staticfiles
 
-# Run Django commands during build
-RUN python manage.py collectstatic --noinput
-RUN python manage.py migrate
-
 # Expose port
 EXPOSE 8000
 
+# Create start script
+RUN echo '#!/bin/bash\n\
+python manage.py migrate --noinput\n\
+python manage.py collectstatic --noinput\n\
+gunicorn mealify_backend.wsgi:application --bind 0.0.0.0:$PORT\n\
+' > /app/start.sh && chmod +x /app/start.sh
+
 # Start command
-CMD gunicorn mealify_backend.wsgi:application --bind 0.0.0.0:$PORT
+CMD ["/app/start.sh"]

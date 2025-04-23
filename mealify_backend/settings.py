@@ -168,11 +168,13 @@ PAYSTACK_VERIFY_URL = "https://api.paystack.co/transaction/verify/"
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
+
 DATABASES = {
     'default': dj_database_url.config(
         default='sqlite:///db.sqlite3',
         conn_max_age=600,
         conn_health_checks=True,
+        ssl_require=True,
     )
 }
 
