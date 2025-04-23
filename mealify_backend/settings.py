@@ -174,6 +174,14 @@ PAYSTACK_VERIFY_URL = "https://api.paystack.co/transaction/verify/"
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 # Use SQLite for local development and DATABASE_URL for production
+POSTGRES_LOCALLY = True
+if ENVIRONMENT == 'production' or POSTGRES_LOCALLY == True:
+    DATABASES ['default'] = dj_database_url.parse(env(`DATABASE_URL`))
+        
+
+
+
+
 DATABASE_URL = os.environ.get('DATABASE_URL', None)
 
 if DATABASE_URL:
