@@ -61,8 +61,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'corsheaders',
-    'api',
-    # 'api.apps.ApiConfig',  # Make sure this matches your app config
+    'api.apps.ApiConfig',  
     'rest_framework_simplejwt',
    
 ]
