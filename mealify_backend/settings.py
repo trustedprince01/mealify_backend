@@ -172,25 +172,13 @@ PAYSTACK_VERIFY_URL = "https://api.paystack.co/transaction/verify/"
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
-
-# Use SQLite for local development and DATABASE_URL for production
-# 👇 Get the DATABASE_URL from your .env or Railway
-DATABASE_URL = os.environ.get('DATABASE_URL')
-print("DATABASE_URL:", os.environ.get('DATABASE_URL'))
-
-
-if DATABASE_URL:
-    DATABASES = {
-        'default': dj_database_url.parse(DATABASE_URL)
-    }
-else:
-    # Fallback to SQLite for local development
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
-    }
+DATABASES = {
+    'default': dj_database_url.config(
+        default='sqlite:///db.sqlite3',
+        conn_max_age=600,
+        conn_health_checks=True,
+    )
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
