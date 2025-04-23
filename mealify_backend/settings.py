@@ -44,7 +44,11 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-7812*8a#4%y5pwdtox$39
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 
-ALLOWED_HOSTS = ['*']  # We'll update this once we get the new Railway URL
+ALLOWED_HOSTS = [
+    'mealifybackend-production.up.railway.app',
+    'localhost',
+    '127.0.0.1'
+]
 
 # Application definition
 
@@ -126,8 +130,9 @@ CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:8080',
     'http://localhost:5173',
-    'http://localhost:3000'
-]  # We'll add the new frontend URL later
+    'http://localhost:3000',
+    'https://mealifybackend-production.up.railway.app'
+]
 
 CORS_ALLOW_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
 CORS_ALLOW_HEADERS = ["*"]
