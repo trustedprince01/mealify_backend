@@ -42,13 +42,9 @@ cloudinary.config(
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-7812*8a#4%y5pwdtox$393*n68#wij1+k!!&!#r#=u@gfaf6cl')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = [
-    'mealifybackend-production.up.railway.app',
-    'localhost',
-    '127.0.0.1'
-]
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',')
 
 # Application definition
 
@@ -123,15 +119,14 @@ SIMPLE_JWT = {
 # Add CORS settings - Update to handle both local and Railway deployments
 FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:8080')
 
-CORS_ALLOW_ALL_ORIGINS = True  # For initial testing
-CORS_ALLOW_CREDENTIALS = True
-
+CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:8080',
     'http://localhost:5173',
     'http://localhost:3000',
-    'https://mealifybackend-production.up.railway.app'
+    os.environ.get('FRONTEND_URL', 'https://mealify-frontend.vercel.app'),
 ]
+CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOW_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
 CORS_ALLOW_HEADERS = ["*"]
@@ -212,7 +207,7 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
