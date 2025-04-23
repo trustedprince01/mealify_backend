@@ -4,7 +4,7 @@ FROM python:3.11-slim
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
-ENV PYTHONPATH=/app:/app/mealify_backend
+ENV PYTHONPATH=/app
 
 # Set working directory
 WORKDIR /app
@@ -21,8 +21,12 @@ COPY . .
 # Create directory for static files
 RUN mkdir -p staticfiles
 
+# Run Django commands during build
+RUN python manage.py collectstatic --noinput
+RUN python manage.py migrate
+
 # Expose port
 EXPOSE 8000
 
 # Start command
-CMD python manage.py migrate && python manage.py collectstatic --noinput && gunicorn mealify_backend.wsgi:application --bind 0.0.0.0:$PORT
+CMD gunicorn mealify_backend.wsgi:application --bind 0.0.0.0:$PORT
