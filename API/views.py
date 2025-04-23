@@ -1322,7 +1322,6 @@ def direct_health_check(request):
         }, status=status.HTTP_200_OK)
     
     # Add headers directly to the response
-    response["Access-Control-Allow-Origin"] = "https://mealify-foods.up.railway.app"
     response["Access-Control-Allow-Headers"] = "Content-Type, Authorization, Accept"
     response["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
     response["Access-Control-Allow-Credentials"] = "true"

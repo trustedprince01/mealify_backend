@@ -119,7 +119,7 @@ SIMPLE_JWT = {
     'TOKEN_TYPE_CLAIM': 'token_type',
 }
 
-# Add CORS settings - Update to handle both local and Railway deployments
+
 FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:8080')
 
 CORS_ALLOW_ALL_ORIGINS = True  # For local development
