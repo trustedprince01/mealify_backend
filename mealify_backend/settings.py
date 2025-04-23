@@ -44,7 +44,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-7812*8a#4%y5pwdtox$39
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '*').split(',')
 
 # Application definition
 
@@ -117,13 +117,15 @@ SIMPLE_JWT = {
 }
 
 
-FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:8080')
+FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://your-frontend-domain.railway.app')
 
-CORS_ALLOW_ALL_ORIGINS = True  # For local development
+CORS_ALLOW_ALL_ORIGINS = False  # More secure for production
 CORS_ALLOW_CREDENTIALS = True
 
-CORS_ALLOWED_ORIGINS = os.environ.get('CORS_ALLOWED_ORIGINS', '').split(',')
-
+CORS_ALLOWED_ORIGINS = [
+    os.environ.get('FRONTEND_URL', 'https://your-frontend-domain.railway.app'),
+    'https://your-frontend-domain.railway.app',  # Replace with your actual frontend URL
+]
 CORS_ALLOW_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
 CORS_ALLOW_HEADERS = ["*"]
 CORS_EXPOSE_HEADERS = ["*"]
@@ -220,5 +222,5 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'api.User'
 
-# Update REACT_APP_API_URL to use localhost for development
-REACT_APP_API_URL = "http://localhost:8080"
+# Update REACT_APP_API_URL to use the production URL
+REACT_APP_API_URL = os.environ.get('BACKEND_URL', 'https://your-backend-domain.railway.app')
