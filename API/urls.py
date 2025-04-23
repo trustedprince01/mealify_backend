@@ -69,9 +69,6 @@ urlpatterns = [
     path('admin/users/', views.get_all_users, name='admin_users'),
     path('admin/users/<int:user_id>/toggle-status/', views.toggle_user_status, name='toggle_user_status'),
     path('admin/users/<int:user_id>/reset-password/', views.reset_user_password, name='reset_user_password'),
-
-    # API endpoints
-    path('api/', include('api.urls')),
 ]
 
 

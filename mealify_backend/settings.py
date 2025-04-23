@@ -118,17 +118,23 @@ SIMPLE_JWT = {
     'TOKEN_TYPE_CLAIM': 'token_type',
 }
 
-# Add CORS settings
-FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://mealify-foods.up.railway.app')
+# Add CORS settings - Update to handle both local and Railway deployments
+FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:8080')
 
-CORS_ALLOW_ALL_ORIGINS = True  # For development/testing only
+CORS_ALLOW_ALL_ORIGINS = True  # For development only
 CORS_ALLOW_CREDENTIALS = True
+
+# Ensure the FRONTEND_URL is always in allowed origins
 CORS_ALLOWED_ORIGINS = [
-    'https://mealify-foods.up.railway.app',
+    'http://localhost:8080',
     'http://localhost:5173',
     'http://localhost:3000',
-    'http://localhost:8080',
+    'https://mealify-food-production.up.railway.app',  # Replace with your actual frontend URL
 ]
+
+# If FRONTEND_URL is set and not already in the list, add it
+if FRONTEND_URL and FRONTEND_URL not in CORS_ALLOWED_ORIGINS:
+    CORS_ALLOWED_ORIGINS.append(FRONTEND_URL)
 
 # Additional CORS settings for proper handling
 CORS_ALLOW_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
@@ -167,11 +173,20 @@ PAYSTACK_VERIFY_URL = "https://api.paystack.co/transaction/verify/"
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-DATABASE_URL = os.environ.get('DATABASE_URL', 'postgresql://postgres:eyNONmtAkUBkleVttaoChspaKMNdwEuN@shinkansen.proxy.rlwy.net:34640/railway')
+# Use SQLite for local development and DATABASE_URL for production
+DATABASE_URL = os.environ.get('DATABASE_URL', None)
 
-DATABASES = {
-    'default': dj_database_url.config(default=DATABASE_URL)
-}
+if DATABASE_URL:
+    DATABASES = {
+        'default': dj_database_url.config(default=DATABASE_URL)
+    }
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 
 # Password validation
@@ -219,4 +234,5 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'api.User'
 
-REACT_APP_API_URL = "https://mealify.up.railway.app"
+# Update REACT_APP_API_URL to use localhost for development
+REACT_APP_API_URL = "http://localhost:8080"
