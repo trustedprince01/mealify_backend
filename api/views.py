@@ -1,5 +1,5 @@
 from .paystack import initialize_payment, verify_payment
-from .models import Payment, DeliveryAddress, Order, User
+from .models import Payment, DeliveryAddress, Order, StaffProfile, User
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
