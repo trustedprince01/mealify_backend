@@ -7,6 +7,8 @@ from django.conf import settings
 
 # Use the secret key from settings
 PAYSTACK_SECRET_KEY = settings.PAYSTACK_SECRET_KEY
+# Use the frontend URL from settings or default to localhost
+FRONTEND_URL = getattr(settings, 'FRONTEND_URL', 'http://localhost:8080')
 
 def generate_reference():
     """Generate a unique transaction reference"""
@@ -30,11 +32,12 @@ def initialize_payment(amount, email, reference=None):
         "email": email,
         "amount": amount_in_kobo,
         "reference": reference,
-        "callback_url": "http://localhost:8080/payment/verify"  # Updated to match your frontend port
+        "callback_url": f"{FRONTEND_URL}/payment/verify"  # Dynamic callback URL
     }
     
     print(f"Initializing payment with data: {data}")
     print(f"Using secret key: {PAYSTACK_SECRET_KEY[:5]}...")
+    print(f"Using callback_url: {data['callback_url']}")
     
     try:
         response = requests.post(url, headers=headers, data=json.dumps(data))
