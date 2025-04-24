@@ -1,1 +1,1 @@
-web: gunicorn mealify_backend.wsgi --log-file -
+web: cd mealify_backend && gunicorn --chdir mealify_backend mealify_backend.wsgi:application
