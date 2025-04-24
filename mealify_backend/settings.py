@@ -117,14 +117,14 @@ SIMPLE_JWT = {
 }
 
 
-FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://your-frontend-domain.railway.app')
+FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
 
-CORS_ALLOW_ALL_ORIGINS = False  # More secure for production
+CORS_ALLOW_ALL_ORIGINS = True  # For development
 CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOWED_ORIGINS = [
-    os.environ.get('FRONTEND_URL', 'https://your-frontend-domain.railway.app'),
-    'https://your-frontend-domain.railway.app',  # Replace with your actual frontend URL
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
 ]
 CORS_ALLOW_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
 CORS_ALLOW_HEADERS = ["*"]
@@ -173,6 +173,9 @@ else:
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
             'NAME': BASE_DIR / 'db.sqlite3',
+            'OPTIONS': {
+                'timeout': 20,
+            }
         }
     }
 
