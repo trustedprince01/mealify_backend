@@ -423,6 +423,8 @@ def place_order_with_payment(request):
         
         if payment_method == 'card':
             try:
+                FRONTEND_URL = getattr(settings, 'FRONTEND_URL', 'http://localhost:8080')
+                callback_url = f"{FRONTEND_URL}/dashboard/orders"
                 # Initialize payment with Paystack
                 print("Initializing Paystack payment...")
                 response = requests.post(
@@ -430,7 +432,7 @@ def place_order_with_payment(request):
                     json={
                         'email': request.user.email,
                         'amount': int(float(total_cost) * 100),  # Convert to kobo
-                        'callback_url': 'http://localhost:8080/dashboard/orders',  # Redirect to orders page after payment
+                        'callback_url': callback_url,  # Redirect to orders page after payment
                         'reference': payment.reference,
                         'metadata': {
                             'order_id': order.id,
